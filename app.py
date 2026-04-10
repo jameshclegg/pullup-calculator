@@ -12,8 +12,33 @@ from calculator import compute_1rm_grid
 app = Flask(__name__)
 
 
+CONTOUR_LEVELS = [10, 25, 40, 55, 65]
+
+
+def _extract_contour_paths(
+    x: np.ndarray, y: np.ndarray, z: np.ndarray, levels: list[float]
+) -> list[tuple[float, np.ndarray, np.ndarray]]:
+    """Use matplotlib to compute contour paths at exact levels.
+
+    Returns a list of (level, xs, ys) tuples — one per path segment.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig_mpl, ax = plt.subplots()
+    cs = ax.contour(x, y, z, levels=levels)
+    paths = []
+    for level, segs in zip(cs.levels, cs.allsegs):
+        for seg in segs:
+            if len(seg) > 1:
+                paths.append((float(level), seg[:, 0], seg[:, 1]))
+    plt.close(fig_mpl)
+    return paths
+
+
 def build_heatmap(bodyweight: float) -> str:
-    """Build a Plotly heatmap and return its JSON representation."""
+    """Build a Plotly heatmap with contour line overlays."""
     added_weights, reps, rm_grid = compute_1rm_grid(bodyweight)
 
     fig = go.Figure(
@@ -22,9 +47,6 @@ def build_heatmap(bodyweight: float) -> str:
             x=added_weights,
             y=reps,
             colorscale="YlOrRd",
-            text=rm_grid,
-            texttemplate="%{text}",
-            textfont={"size": 11},
             colorbar=dict(title="1RM (kg)"),
             hovertemplate=(
                 "Added weight: %{x} kg<br>"
@@ -33,6 +55,36 @@ def build_heatmap(bodyweight: float) -> str:
             ),
         )
     )
+
+    # Overlay contour lines at the requested levels
+    paths = _extract_contour_paths(added_weights, reps, rm_grid, CONTOUR_LEVELS)
+    legend_shown: set[float] = set()
+    for level, xs, ys in paths:
+        show_legend = level not in legend_shown
+        legend_shown.add(level)
+        fig.add_trace(
+            go.Scatter(
+                x=xs,
+                y=ys,
+                mode="lines",
+                line=dict(color="white", width=2),
+                name=f"{int(level)} kg",
+                legendgroup=f"{level}",
+                showlegend=show_legend,
+                hoverinfo="skip",
+            )
+        )
+        # Add a label near the midpoint of each contour segment
+        mid = len(xs) // 2
+        fig.add_annotation(
+            x=float(xs[mid]),
+            y=float(ys[mid]),
+            text=f"<b>{int(level)}</b>",
+            showarrow=False,
+            font=dict(size=13, color="white"),
+            bgcolor="rgba(0,0,0,0.5)",
+            borderpad=2,
+        )
 
     fig.update_layout(
         title=dict(
@@ -43,6 +95,7 @@ def build_heatmap(bodyweight: float) -> str:
         yaxis=dict(title="Repetitions", dtick=1),
         height=520,
         margin=dict(t=60, b=60),
+        showlegend=False,
     )
 
     return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
