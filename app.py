@@ -115,9 +115,46 @@ def build_heatmap(bodyweight: float) -> str:
     return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
 
-# ---------------------------------------------------------------------------
-# Timeline chart builder
-# ---------------------------------------------------------------------------
+LINE_CHART_WEIGHTS = [9, 13, 18, 22, 27]
+WEIGHT_COLORS = ["#3498db", "#2ecc71", "#f39c12", "#e74c3c", "#9b59b6"]
+
+
+def build_line_chart(bodyweight: float) -> str:
+    """Build a line chart of 1RM vs reps for specific added weights."""
+    _, reps, _ = compute_1rm_grid(bodyweight)
+
+    fig = go.Figure()
+    for weight, color in zip(LINE_CHART_WEIGHTS, WEIGHT_COLORS):
+        rm_values = [
+            round(compute_1rm(bodyweight, weight, int(r)), 1) for r in reps
+        ]
+        fig.add_trace(
+            go.Scatter(
+                x=reps, y=rm_values, mode="lines+markers",
+                name=f"+{weight} kg",
+                line=dict(color=color, width=2),
+                marker=dict(size=5),
+                hovertemplate=(
+                    f"+{weight} kg<br>"
+                    "Reps: %{x}<br>"
+                    "1RM: %{y:.1f} kg<extra></extra>"
+                ),
+            )
+        )
+
+    fig.update_layout(
+        title=dict(
+            text=f"1RM vs Reps at Selected Added Weights  (BW = {bodyweight} kg)",
+            x=0.5,
+        ),
+        xaxis=dict(title="Repetitions", dtick=1),
+        yaxis=dict(title="Estimated 1RM (kg)"),
+        height=420,
+        margin=dict(t=60, b=60),
+        legend=dict(title="Added Weight"),
+    )
+
+    return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
 def build_timeline_charts(entries: list[dict]) -> str | None:
     """Build a two-subplot timeline chart (1RM and unweighted reps vs date)."""
@@ -185,18 +222,21 @@ def index():
     default_bw = 64.0
     bodyweight = default_bw
     plot_json = build_heatmap(default_bw)
+    line_json = build_line_chart(default_bw)
 
     if request.method == "POST":
         try:
             bodyweight = float(request.form.get("bodyweight", ""))
             plot_json = build_heatmap(bodyweight)
+            line_json = build_line_chart(bodyweight)
         except (ValueError, TypeError):
             bodyweight = default_bw
             plot_json = build_heatmap(default_bw)
+            line_json = build_line_chart(default_bw)
 
     return render_template(
         "index.html", tab="calculator",
-        bodyweight=bodyweight, plot_json=plot_json,
+        bodyweight=bodyweight, plot_json=plot_json, line_json=line_json,
     )
 
 

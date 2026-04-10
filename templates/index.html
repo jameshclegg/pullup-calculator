@@ -95,6 +95,15 @@
       {% endif %}
     </div>
 
+    <div id="line-chart" class="chart">
+      {% if line_json %}
+      <script>
+        var lineData = {{ line_json | safe }};
+        Plotly.newPlot('line-chart', lineData.data, lineData.layout, {responsive: true});
+      </script>
+      {% endif %}
+    </div>
+
     <div class="formula">
       Formula: <code>1RM = (BW + Added Weight) &times; (1 + 0.0333 &times; (Reps &minus; 1)) &minus; BW</code>
       &nbsp;&mdash;&nbsp; modified Epley formula for pull-ups
