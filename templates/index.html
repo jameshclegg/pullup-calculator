@@ -6,7 +6,7 @@
   <title>Pull-Up 1RM Calculator</title>
   <script src="https://cdn.plot.ly/plotly-3.5.0.min.js"></script>
   <style>
-    :root { --accent: #e74c3c; --bg: #1a1a2e; --card: #16213e; --text: #eee; }
+    :root { --accent: #e74c3c; --bg: #1a1a2e; --card: #16213e; --text: #eee; --input-bg: #0f3460; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
@@ -15,46 +15,78 @@
       min-height: 100vh; padding: 2rem 1rem;
     }
     h1 { font-size: 1.8rem; margin-bottom: .3rem; }
-    .subtitle { color: #aaa; margin-bottom: 1.5rem; font-size: .95rem; }
+    .subtitle { color: #aaa; margin-bottom: 1.2rem; font-size: .95rem; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: .5rem; margin-bottom: 1rem; }
+    .tabs a {
+      text-decoration: none; color: #aaa; padding: .5rem 1.4rem;
+      border-radius: 8px 8px 0 0; font-weight: 600; font-size: 1rem;
+      background: rgba(255,255,255,.05); transition: background .2s, color .2s;
+    }
+    .tabs a:hover { color: #fff; background: rgba(255,255,255,.1); }
+    .tabs a.active { color: #fff; background: var(--card); }
+
     .card {
-      background: var(--card); border-radius: 12px; padding: 1.5rem 2rem;
-      box-shadow: 0 4px 24px rgba(0,0,0,.4); width: 100%; max-width: 900px;
+      background: var(--card); border-radius: 0 12px 12px 12px; padding: 1.5rem 2rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,.4); width: 100%; max-width: 960px;
     }
-    form { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: center; }
-    label { font-weight: 600; font-size: 1.05rem; }
-    input[type=number] {
-      width: 120px; padding: .5rem .75rem; border: 2px solid #333; border-radius: 8px;
-      background: #0f3460; color: #fff; font-size: 1rem;
+    form.inline { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+    label { font-weight: 600; font-size: .95rem; }
+    input[type=number], input[type=date] {
+      padding: .45rem .65rem; border: 2px solid #333; border-radius: 8px;
+      background: var(--input-bg); color: #fff; font-size: .95rem; width: 130px;
     }
-    input[type=number]:focus { outline: none; border-color: var(--accent); }
-    button {
+    input:focus { outline: none; border-color: var(--accent); }
+    button, .btn {
       background: var(--accent); color: #fff; border: none; border-radius: 8px;
-      padding: .55rem 1.6rem; font-size: 1rem; font-weight: 600; cursor: pointer;
-      transition: background .2s;
+      padding: .5rem 1.4rem; font-size: .95rem; font-weight: 600; cursor: pointer;
+      transition: background .2s; text-decoration: none; display: inline-block;
     }
-    button:hover { background: #c0392b; }
-    #chart { margin-top: 1.5rem; }
+    button:hover, .btn:hover { background: #c0392b; }
+    .btn-sm { padding: .3rem .8rem; font-size: .8rem; }
+    .btn-outline { background: transparent; border: 1.5px solid var(--accent); }
+    .btn-outline:hover { background: var(--accent); }
+
+    .chart { margin-top: 1.5rem; }
     .formula {
-      margin-top: 1.2rem; padding: .8rem 1rem; background: #0f3460;
+      margin-top: 1.2rem; padding: .8rem 1rem; background: var(--input-bg);
       border-radius: 8px; font-size: .9rem; color: #bbb; text-align: center;
     }
     .formula code { color: #f39c12; }
+    .msg { text-align: center; padding: .6rem; border-radius: 6px; margin-bottom: 1rem;
+           background: rgba(46,204,113,.15); color: #2ecc71; }
+
+    /* Timeline table */
+    .entries { margin-top: 1.2rem; width: 100%; border-collapse: collapse; font-size: .9rem; }
+    .entries th, .entries td { padding: .45rem .7rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .entries th { color: #aaa; font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .5px; }
+    .entries tr:hover { background: rgba(255,255,255,.04); }
+    .empty { text-align: center; color: #666; padding: 2rem; }
   </style>
 </head>
 <body>
 
-  <h1>🏋️ Weighted Pull-Up 1RM Calculator</h1>
-  <p class="subtitle">Estimate your one-rep-max across different added weights &amp; rep ranges</p>
+  <h1>🏋️ Weighted Pull-Up Calculator</h1>
+  <p class="subtitle">Estimate your one-rep-max &amp; track progress over time</p>
+
+  <div class="tabs">
+    <a href="/" class="{{ 'active' if tab == 'calculator' }}">Calculator</a>
+    <a href="/timeline" class="{{ 'active' if tab == 'timeline' }}">Timeline</a>
+  </div>
 
   <div class="card">
-    <form method="POST">
+
+    {# ── CALCULATOR TAB ── #}
+    {% if tab == 'calculator' %}
+    <form method="POST" class="inline">
       <label for="bodyweight">Body Weight (kg):</label>
       <input type="number" id="bodyweight" name="bodyweight" step="0.1" min="30" max="200"
              value="{{ bodyweight or '' }}" placeholder="e.g. 75" required />
       <button type="submit">Calculate</button>
     </form>
 
-    <div id="chart">
+    <div id="chart" class="chart">
       {% if plot_json %}
       <script>
         var plotData = {{ plot_json | safe }};
@@ -67,6 +99,62 @@
       Formula: <code>1RM = (BW + Added Weight) &times; (1 + 0.0333 &times; (Reps &minus; 1)) &minus; BW</code>
       &nbsp;&mdash;&nbsp; modified Epley formula for pull-ups
     </div>
+
+    {# ── TIMELINE TAB ── #}
+    {% elif tab == 'timeline' %}
+
+    {% if message %}<div class="msg">{{ message }}</div>{% endif %}
+
+    <form method="POST" class="inline" style="margin-bottom:1rem;">
+      <input type="hidden" name="action" value="add" />
+      <label for="date">Date:</label>
+      <input type="date" id="date" name="date" value="{{ today }}" required />
+      <label for="tl_bw">BW (kg):</label>
+      <input type="number" id="tl_bw" name="bodyweight" step="0.1" min="30" max="200" placeholder="75" required />
+      <label for="tl_aw">Added (kg):</label>
+      <input type="number" id="tl_aw" name="added_weight" step="0.5" min="0" max="200" placeholder="10" required />
+      <label for="tl_reps">Reps:</label>
+      <input type="number" id="tl_reps" name="reps" step="1" min="1" max="100" placeholder="8" required />
+      <button type="submit">Add Entry</button>
+    </form>
+
+    <div id="timeline-chart" class="chart">
+      {% if timeline_json %}
+      <script>
+        var tlData = {{ timeline_json | safe }};
+        Plotly.newPlot('timeline-chart', tlData.data, tlData.layout, {responsive: true});
+      </script>
+      {% endif %}
+    </div>
+
+    {% if entries %}
+    <table class="entries">
+      <thead>
+        <tr><th>Date</th><th>BW (kg)</th><th>Added (kg)</th><th>Reps</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td>{{ e.date }}</td>
+          <td>{{ e.bodyweight }}</td>
+          <td>{{ e.added_weight }}</td>
+          <td>{{ e.reps }}</td>
+          <td>
+            <form method="POST" style="display:inline;">
+              <input type="hidden" name="action" value="delete" />
+              <input type="hidden" name="index" value="{{ loop.index0 }}" />
+              <button class="btn-sm btn-outline" type="submit">✕</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No entries yet — add your first workout above.</p>
+    {% endif %}
+
+    {% endif %}
   </div>
 
 </body>
