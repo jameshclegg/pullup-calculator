@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pull-Up 1RM Calculator</title>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    :root { --accent: #e74c3c; --bg: #1a1a2e; --card: #16213e; --text: #eee; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; padding: 2rem 1rem;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: .3rem; }
+    .subtitle { color: #aaa; margin-bottom: 1.5rem; font-size: .95rem; }
+    .card {
+      background: var(--card); border-radius: 12px; padding: 1.5rem 2rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,.4); width: 100%; max-width: 900px;
+    }
+    form { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+    label { font-weight: 600; font-size: 1.05rem; }
+    input[type=number] {
+      width: 120px; padding: .5rem .75rem; border: 2px solid #333; border-radius: 8px;
+      background: #0f3460; color: #fff; font-size: 1rem;
+    }
+    input[type=number]:focus { outline: none; border-color: var(--accent); }
+    button {
+      background: var(--accent); color: #fff; border: none; border-radius: 8px;
+      padding: .55rem 1.6rem; font-size: 1rem; font-weight: 600; cursor: pointer;
+      transition: background .2s;
+    }
+    button:hover { background: #c0392b; }
+    #chart { margin-top: 1.5rem; }
+    .formula {
+      margin-top: 1.2rem; padding: .8rem 1rem; background: #0f3460;
+      border-radius: 8px; font-size: .9rem; color: #bbb; text-align: center;
+    }
+    .formula code { color: #f39c12; }
+  </style>
+</head>
+<body>
+
+  <h1>🏋️ Weighted Pull-Up 1RM Calculator</h1>
+  <p class="subtitle">Estimate your one-rep-max across different added weights &amp; rep ranges</p>
+
+  <div class="card">
+    <form method="POST">
+      <label for="bodyweight">Body Weight (kg):</label>
+      <input type="number" id="bodyweight" name="bodyweight" step="0.1" min="30" max="200"
+             value="{{ bodyweight or '' }}" placeholder="e.g. 75" required />
+      <button type="submit">Calculate</button>
+    </form>
+
+    <div id="chart">
+      {% if plot_json %}
+      <script>
+        var plotData = {{ plot_json | safe }};
+        Plotly.newPlot('chart', plotData.data, plotData.layout, {responsive: true});
+      </script>
+      {% endif %}
+    </div>
+
+    <div class="formula">
+      Formula: <code>1RM = (BW + Added Weight) &times; (1 + 0.0333 &times; (Reps &minus; 1)) &minus; BW</code>
+      &nbsp;&mdash;&nbsp; modified Epley formula for pull-ups
+    </div>
+  </div>
+
+</body>
+</html>
