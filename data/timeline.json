@@ -1,0 +1,32 @@
+[
+  {
+    "date": "2025-01-01",
+    "bodyweight": 65.0,
+    "added_weight": 0.0,
+    "reps": 10
+  },
+  {
+    "date": "2025-09-11",
+    "bodyweight": 63.0,
+    "added_weight": 0.0,
+    "reps": 14
+  },
+  {
+    "date": "2025-12-30",
+    "bodyweight": 64.0,
+    "added_weight": 0.0,
+    "reps": 17
+  },
+  {
+    "date": "2026-03-20",
+    "bodyweight": 64.0,
+    "added_weight": 13.0,
+    "reps": 11
+  },
+  {
+    "date": "2026-04-10",
+    "bodyweight": 64.0,
+    "added_weight": 18.0,
+    "reps": 8
+  }
+]

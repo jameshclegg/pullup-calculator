@@ -182,15 +182,17 @@ def build_timeline_charts(entries: list[dict]) -> str | None:
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    bodyweight = None
-    plot_json = None
+    default_bw = 64.0
+    bodyweight = default_bw
+    plot_json = build_heatmap(default_bw)
 
     if request.method == "POST":
         try:
             bodyweight = float(request.form.get("bodyweight", ""))
             plot_json = build_heatmap(bodyweight)
         except (ValueError, TypeError):
-            bodyweight = None
+            bodyweight = default_bw
+            plot_json = build_heatmap(default_bw)
 
     return render_template(
         "index.html", tab="calculator",
