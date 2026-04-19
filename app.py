@@ -1,36 +1,44 @@
 """Flask web app for the pull-up 1RM calculator."""
 
 import json
+import os
 from datetime import date
-from pathlib import Path
+from functools import wraps
 
 import numpy as np
 import plotly
 import plotly.graph_objects as go
-from flask import Flask, redirect, render_template, request, url_for
+from flask import Flask, redirect, render_template, request, session, url_for
 from plotly.subplots import make_subplots
 
 from calculator import compute_1rm, compute_1rm_grid, compute_unweighted_reps
+from db import add_timeline_entry, delete_timeline_entry, init_db, load_timeline
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+
+# Password for the timeline page (set via environment variable)
+TIMELINE_PASSWORD = os.environ.get("TIMELINE_PASSWORD", "")
 
 CONTOUR_LEVELS = [10, 25, 40, 55, 65]
-TIMELINE_FILE = Path(__file__).parent / "data" / "timeline.json"
+
+# Initialise the database table on startup
+with app.app_context():
+    init_db()
 
 
 # ---------------------------------------------------------------------------
-# Timeline data helpers
+# Auth helper
 # ---------------------------------------------------------------------------
 
-def _load_timeline() -> list[dict]:
-    if TIMELINE_FILE.exists():
-        return json.loads(TIMELINE_FILE.read_text())
-    return []
-
-
-def _save_timeline(entries: list[dict]) -> None:
-    TIMELINE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    TIMELINE_FILE.write_text(json.dumps(entries, indent=2))
+def login_required(f):
+    """Require login for a route (only if TIMELINE_PASSWORD is set)."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if TIMELINE_PASSWORD and not session.get("authenticated"):
+            return redirect(url_for("login", next=request.url))
+        return f(*args, **kwargs)
+    return decorated
 
 
 # ---------------------------------------------------------------------------
@@ -240,9 +248,27 @@ def index():
     )
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        if request.form.get("password") == TIMELINE_PASSWORD:
+            session["authenticated"] = True
+            return redirect(request.args.get("next", url_for("timeline")))
+        error = "Incorrect password."
+    return render_template("login.html", error=error)
+
+
+@app.route("/logout")
+def logout():
+    session.pop("authenticated", None)
+    return redirect(url_for("index"))
+
+
 @app.route("/timeline", methods=["GET", "POST"])
+@login_required
 def timeline():
-    entries = _load_timeline()
+    entries = load_timeline()
     message = None
 
     if request.method == "POST":
@@ -256,20 +282,20 @@ def timeline():
                     "added_weight": float(request.form["added_weight"]),
                     "reps": int(request.form["reps"]),
                 }
-                entries.append(entry)
-                _save_timeline(entries)
+                add_timeline_entry(entry)
                 message = "Entry added."
             except (ValueError, KeyError):
                 message = "Invalid input — please fill all fields."
 
         elif action == "delete":
             try:
-                idx = int(request.form["index"])
-                entries.pop(idx)
-                _save_timeline(entries)
+                identifier = int(request.form["index"])
+                delete_timeline_entry(identifier)
                 message = "Entry deleted."
             except (ValueError, IndexError):
                 pass
+
+        entries = load_timeline()
 
     timeline_json = build_timeline_charts(entries)
 

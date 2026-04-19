@@ -151,7 +151,7 @@
           <td>
             <form method="POST" style="display:inline;">
               <input type="hidden" name="action" value="delete" />
-              <input type="hidden" name="index" value="{{ loop.index0 }}" />
+              <input type="hidden" name="index" value="{{ e.id if e.id is defined else loop.index0 }}" />
               <button class="btn-sm btn-outline" type="submit">✕</button>
             </form>
           </td>
