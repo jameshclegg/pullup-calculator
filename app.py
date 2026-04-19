@@ -180,11 +180,19 @@ def build_timeline_charts(entries: list[dict]) -> str | None:
         for rm, e in zip(rms, sorted_entries)
     ]
 
+    reps_raw = [e["reps"] for e in sorted_entries]
+    added_raw = [e["added_weight"] for e in sorted_entries]
+
     fig = make_subplots(
-        rows=2, cols=1,
+        rows=4, cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.12,
-        subplot_titles=("Estimated 1RM (kg) over time", "Estimated unweighted reps over time"),
+        vertical_spacing=0.08,
+        subplot_titles=(
+            "Estimated 1RM (kg) over time",
+            "Estimated unweighted reps over time",
+            "Reps performed over time",
+            "Added weight (kg) over time",
+        ),
     )
 
     fig.add_trace(
@@ -209,14 +217,38 @@ def build_timeline_charts(entries: list[dict]) -> str | None:
         row=2, col=1,
     )
 
+    fig.add_trace(
+        go.Scatter(
+            x=dates, y=reps_raw, mode="lines+markers",
+            name="Reps",
+            line=dict(color="#2ecc71", width=2),
+            marker=dict(size=8),
+            hovertemplate="Date: %{x}<br>Reps: %{y}<extra></extra>",
+        ),
+        row=3, col=1,
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=dates, y=added_raw, mode="lines+markers",
+            name="Added weight",
+            line=dict(color="#f39c12", width=2),
+            marker=dict(size=8),
+            hovertemplate="Date: %{x}<br>Added: %{y} kg<extra></extra>",
+        ),
+        row=4, col=1,
+    )
+
     fig.update_layout(
-        height=600,
+        height=1100,
         showlegend=False,
         margin=dict(t=40, b=40),
     )
     fig.update_yaxes(title_text="1RM (kg)", row=1, col=1)
     fig.update_yaxes(title_text="Reps (bodyweight)", row=2, col=1)
-    fig.update_xaxes(title_text="Date", row=2, col=1)
+    fig.update_yaxes(title_text="Reps", row=3, col=1)
+    fig.update_yaxes(title_text="Added weight (kg)", row=4, col=1)
+    fig.update_xaxes(title_text="Date", row=4, col=1)
 
     return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
