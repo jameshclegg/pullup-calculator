@@ -239,6 +239,25 @@ def build_timeline_charts(entries: list[dict]) -> str | None:
         row=4, col=1,
     )
 
+    # Annotate weight jumps on the added-weight chart
+    from datetime import date as date_cls
+    for i in range(1, len(added_raw)):
+        if added_raw[i] > added_raw[i - 1]:
+            jump_kg = added_raw[i] - added_raw[i - 1]
+            d_prev = date_cls.fromisoformat(dates[i - 1])
+            d_curr = date_cls.fromisoformat(dates[i])
+            days_at_prev = (d_curr - d_prev).days
+            fig.add_annotation(
+                x=dates[i], y=added_raw[i],
+                text=f"+{jump_kg:g}, {days_at_prev}d",
+                showarrow=True, arrowhead=2, arrowsize=1, arrowcolor="#f39c12",
+                ax=0, ay=-30,
+                font=dict(size=11, color="#fff"),
+                bgcolor="rgba(0,0,0,0.6)",
+                borderpad=3, bordercolor="#f39c12", borderwidth=1,
+                xref="x4", yref="y4",
+            )
+
     fig.update_layout(
         height=1100,
         showlegend=False,
