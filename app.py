@@ -165,39 +165,45 @@ def build_line_chart(bodyweight: float) -> str:
     return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
 
-def build_marginal_reps_chart(bodyweight: float, base_reps: int = 8) -> str:
+def build_marginal_reps_chart(bodyweight: float) -> str:
     """Show the gain in estimated max unweighted reps from doing +1 rep at each added weight."""
     added_weights = list(range(0, 31))
-    delta_reps = []
-    for w in added_weights:
-        rm_base = compute_1rm(bodyweight, w, base_reps)
-        rm_plus1 = compute_1rm(bodyweight, w, base_reps + 1)
-        uw_base = compute_unweighted_reps(bodyweight, rm_base)
-        uw_plus1 = compute_unweighted_reps(bodyweight, rm_plus1)
-        delta_reps.append(round(uw_plus1 - uw_base, 2))
+    rep_levels = [(8, "#9b59b6"), (11, "#3498db")]
 
     fig = go.Figure()
-    fig.add_trace(
-        go.Bar(
-            x=added_weights, y=delta_reps,
-            marker=dict(color="#9b59b6"),
-            hovertemplate=(
-                "Added weight: %{x} kg<br>"
-                f"Going from {base_reps} → {base_reps + 1} reps<br>"
-                "Unweighted rep gain: +%{y:.2f}<extra></extra>"
-            ),
+    for base_reps, color in rep_levels:
+        delta_reps = []
+        for w in added_weights:
+            rm_base = compute_1rm(bodyweight, w, base_reps)
+            rm_plus1 = compute_1rm(bodyweight, w, base_reps + 1)
+            uw_base = compute_unweighted_reps(bodyweight, rm_base)
+            uw_plus1 = compute_unweighted_reps(bodyweight, rm_plus1)
+            delta_reps.append(round(uw_plus1 - uw_base, 2))
+
+        fig.add_trace(
+            go.Scatter(
+                x=added_weights, y=delta_reps, mode="lines+markers",
+                name=f"{base_reps} → {base_reps + 1} reps",
+                line=dict(color=color, width=2),
+                marker=dict(size=6),
+                hovertemplate=(
+                    "Added weight: %{x} kg<br>"
+                    f"Going from {base_reps} → {base_reps + 1} reps<br>"
+                    "Unweighted rep gain: +%{y:.2f}<extra></extra>"
+                ),
+            )
         )
-    )
 
     fig.update_layout(
         title=dict(
-            text=f"Gain in Max Unweighted Reps from +1 Rep at {base_reps} Reps  (BW = {bodyweight} kg)",
+            text=f"Gain in Max Unweighted Reps from +1 Rep  (BW = {bodyweight} kg)",
             x=0.5,
         ),
         xaxis=dict(title="Added Weight (kg)", dtick=2),
         yaxis=dict(title="Extra Unweighted Reps"),
-        height=400,
+        height=420,
         margin=dict(t=60, b=60),
+        legend=dict(title="Rep Transition"),
     )
 
     return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
