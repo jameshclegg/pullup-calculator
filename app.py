@@ -164,6 +164,44 @@ def build_line_chart(bodyweight: float) -> str:
 
     return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
+
+def build_marginal_reps_chart(bodyweight: float, base_reps: int = 8) -> str:
+    """Show the gain in estimated max unweighted reps from doing +1 rep at each added weight."""
+    added_weights = list(range(0, 31))
+    delta_reps = []
+    for w in added_weights:
+        rm_base = compute_1rm(bodyweight, w, base_reps)
+        rm_plus1 = compute_1rm(bodyweight, w, base_reps + 1)
+        uw_base = compute_unweighted_reps(bodyweight, rm_base)
+        uw_plus1 = compute_unweighted_reps(bodyweight, rm_plus1)
+        delta_reps.append(round(uw_plus1 - uw_base, 2))
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=added_weights, y=delta_reps,
+            marker=dict(color="#9b59b6"),
+            hovertemplate=(
+                "Added weight: %{x} kg<br>"
+                f"Going from {base_reps} → {base_reps + 1} reps<br>"
+                "Unweighted rep gain: +%{y:.2f}<extra></extra>"
+            ),
+        )
+    )
+
+    fig.update_layout(
+        title=dict(
+            text=f"Gain in Max Unweighted Reps from +1 Rep at {base_reps} Reps  (BW = {bodyweight} kg)",
+            x=0.5,
+        ),
+        xaxis=dict(title="Added Weight (kg)", dtick=2),
+        yaxis=dict(title="Extra Unweighted Reps"),
+        height=400,
+        margin=dict(t=60, b=60),
+    )
+
+    return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
 def build_timeline_charts(entries: list[dict]) -> str | None:
     """Build a two-subplot timeline chart (1RM and unweighted reps vs date)."""
     if not entries:
@@ -287,20 +325,24 @@ def index():
     bodyweight = default_bw
     plot_json = build_heatmap(default_bw)
     line_json = build_line_chart(default_bw)
+    marginal_json = build_marginal_reps_chart(default_bw)
 
     if request.method == "POST":
         try:
             bodyweight = float(request.form.get("bodyweight", ""))
             plot_json = build_heatmap(bodyweight)
             line_json = build_line_chart(bodyweight)
+            marginal_json = build_marginal_reps_chart(bodyweight)
         except (ValueError, TypeError):
             bodyweight = default_bw
             plot_json = build_heatmap(default_bw)
             line_json = build_line_chart(default_bw)
+            marginal_json = build_marginal_reps_chart(default_bw)
 
     return render_template(
         "index.html", tab="calculator",
         bodyweight=bodyweight, plot_json=plot_json, line_json=line_json,
+        marginal_json=marginal_json,
     )
 
 
