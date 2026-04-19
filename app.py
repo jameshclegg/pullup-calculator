@@ -244,9 +244,14 @@ def build_timeline_charts(entries: list[dict]) -> str | None:
     for i in range(1, len(added_raw)):
         if added_raw[i] > added_raw[i - 1]:
             jump_kg = added_raw[i] - added_raw[i - 1]
-            d_prev = date_cls.fromisoformat(dates[i - 1])
+            # Find when the previous weight level was first adopted
+            prev_weight = added_raw[i - 1]
+            first_at_prev = i - 1
+            while first_at_prev > 0 and added_raw[first_at_prev - 1] == prev_weight:
+                first_at_prev -= 1
+            d_start = date_cls.fromisoformat(dates[first_at_prev])
             d_curr = date_cls.fromisoformat(dates[i])
-            days_at_prev = (d_curr - d_prev).days
+            days_at_prev = (d_curr - d_start).days
             fig.add_annotation(
                 x=dates[i], y=added_raw[i],
                 text=f"+{jump_kg:g}, {days_at_prev}d",
