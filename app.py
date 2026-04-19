@@ -229,7 +229,7 @@ def build_timeline_charts(entries: list[dict]) -> str | None:
 
     fig = make_subplots(
         rows=4, cols=1,
-        shared_xaxes=True,
+        shared_xaxes=False,
         vertical_spacing=0.08,
         subplot_titles=(
             "Estimated 1RM (kg) over time",
