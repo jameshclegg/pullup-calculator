@@ -261,6 +261,25 @@ def build_timeline_charts(entries: list[dict]) -> str | None:
         row=2, col=1,
     )
 
+    # Linear trendline projected 6 months into the future
+    from datetime import date as date_cls, timedelta
+    date_objs = [date_cls.fromisoformat(d) for d in dates]
+    day_nums = np.array([(d - date_objs[0]).days for d in date_objs], dtype=float)
+    coeffs = np.polyfit(day_nums, unweighted, 1)
+    future_end = day_nums[-1] + 183  # ~6 months
+    trend_days = np.array([day_nums[0], future_end])
+    trend_vals = np.polyval(coeffs, trend_days)
+    trend_dates = [(date_objs[0] + timedelta(days=int(d))).isoformat() for d in trend_days]
+    fig.add_trace(
+        go.Scatter(
+            x=trend_dates, y=[round(v, 1) for v in trend_vals],
+            mode="lines", name="Trend (6mo projection)",
+            line=dict(color="black", width=1.5, dash="dash"),
+            hovertemplate="Date: %{x}<br>Projected: %{y:.1f} reps<extra></extra>",
+        ),
+        row=2, col=1,
+    )
+
     fig.add_trace(
         go.Scatter(
             x=dates, y=reps_raw, mode="lines+markers",
