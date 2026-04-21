@@ -9,6 +9,7 @@ import numpy as np
 import plotly
 import plotly.graph_objects as go
 from flask import Flask, redirect, render_template, request, session, url_for
+from werkzeug.security import check_password_hash
 from plotly.subplots import make_subplots
 
 from calculator import compute_1rm, compute_1rm_grid, compute_unweighted_reps
