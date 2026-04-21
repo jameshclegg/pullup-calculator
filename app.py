@@ -18,7 +18,9 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
 # Password for the timeline page (set via environment variable)
-TIMELINE_PASSWORD = os.environ.get("TIMELINE_PASSWORD", "")
+from werkzeug.security import check_password_hash
+
+PASSWORD_HASH = os.environ.get("TIMELINE_PASSWORD", "")
 
 CONTOUR_LEVELS = [10, 25, 40, 55, 65]
 
@@ -32,10 +34,10 @@ with app.app_context():
 # ---------------------------------------------------------------------------
 
 def login_required(f):
-    """Require login for a route (only if TIMELINE_PASSWORD is set)."""
+    """Require login for a route (only if PASSWORD_HASH is set)."""
     @wraps(f)
     def decorated(*args, **kwargs):
-        if TIMELINE_PASSWORD and not session.get("authenticated"):
+        if PASSWORD_HASH and not session.get("authenticated"):
             return redirect(url_for("login", next=request.url))
         return f(*args, **kwargs)
     return decorated
@@ -375,7 +377,7 @@ def index():
 def login():
     error = None
     if request.method == "POST":
-        if request.form.get("password") == TIMELINE_PASSWORD:
+        if check_password_hash(PASSWORD_HASH, request.form.get("password", "")):
             session["authenticated"] = True
             return redirect(request.args.get("next", url_for("timeline")))
         error = "Incorrect password."
