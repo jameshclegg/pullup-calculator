@@ -91,16 +91,29 @@ def timeline():
 
         if action == "add":
             try:
-                entry = {
-                    "date": request.form["date"],
-                    "bodyweight": float(request.form["bodyweight"]),
-                    "added_weight": float(request.form["added_weight"]),
-                    "reps": int(request.form["reps"]),
-                }
-                add_timeline_entry(entry)
-                message = "Entry added."
+                parsed_date = date.fromisoformat(request.form["date"])
+                bodyweight = float(request.form["bodyweight"])
+                added_weight = float(request.form["added_weight"])
+                reps = int(request.form["reps"])
+                if not (20 <= bodyweight <= 300):
+                    message = "Bodyweight must be between 20 and 300 kg."
+                elif not (0 <= added_weight <= 200):
+                    message = "Added weight must be between 0 and 200 kg."
+                elif not (1 <= reps <= 100):
+                    message = "Reps must be between 1 and 100."
+                elif parsed_date > date.today():
+                    message = "Date cannot be in the future."
+                else:
+                    entry = {
+                        "date": parsed_date.isoformat(),
+                        "bodyweight": bodyweight,
+                        "added_weight": added_weight,
+                        "reps": reps,
+                    }
+                    add_timeline_entry(entry)
+                    message = "Entry added."
             except (ValueError, KeyError):
-                message = "Invalid input — please fill all fields."
+                message = "Invalid input — please enter valid values for all fields."
 
         elif action == "delete":
             try:
