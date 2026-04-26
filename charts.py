@@ -3,6 +3,9 @@
 import json
 from datetime import date, timedelta
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import plotly
 import plotly.graph_objects as go
@@ -19,10 +22,6 @@ def _extract_contour_paths(
     x: np.ndarray, y: np.ndarray, z: np.ndarray, levels: list[float]
 ) -> list[tuple[float, np.ndarray, np.ndarray]]:
     """Use matplotlib to compute contour paths at exact levels."""
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
     fig_mpl, ax = plt.subplots()
     cs = ax.contour(x, y, z, levels=levels)
     paths = []
