@@ -2,7 +2,7 @@
 
 import json
 import os
-from datetime import date
+from datetime import date, timedelta
 from functools import wraps
 
 import numpy as np
@@ -38,7 +38,7 @@ def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if PASSWORD_HASH and not session.get("authenticated"):
-            return redirect(url_for("login", next=request.url))
+            return redirect(url_for("login", next=request.path))
         return f(*args, **kwargs)
     return decorated
 
@@ -264,8 +264,7 @@ def build_timeline_charts(entries: list[dict]) -> str | None:
     )
 
     # Linear trendline projected 6 months into the future
-    from datetime import date as date_cls, timedelta
-    date_objs = [date_cls.fromisoformat(d) for d in dates]
+    date_objs = [date.fromisoformat(d) for d in dates]
     day_nums = np.array([(d - date_objs[0]).days for d in date_objs], dtype=float)
     coeffs = np.polyfit(day_nums, unweighted, 1)
     future_end = day_nums[-1] + 183  # ~6 months
@@ -305,7 +304,6 @@ def build_timeline_charts(entries: list[dict]) -> str | None:
     )
 
     # Annotate weight jumps on the added-weight chart
-    from datetime import date as date_cls
     for i in range(1, len(added_raw)):
         if added_raw[i] > added_raw[i - 1]:
             jump_kg = added_raw[i] - added_raw[i - 1]
@@ -314,8 +312,8 @@ def build_timeline_charts(entries: list[dict]) -> str | None:
             first_at_prev = i - 1
             while first_at_prev > 0 and added_raw[first_at_prev - 1] == prev_weight:
                 first_at_prev -= 1
-            d_start = date_cls.fromisoformat(dates[first_at_prev])
-            d_curr = date_cls.fromisoformat(dates[i])
+            d_start = date.fromisoformat(dates[first_at_prev])
+            d_curr = date.fromisoformat(dates[i])
             days_at_prev = (d_curr - d_start).days
             fig.add_annotation(
                 x=dates[i], y=added_raw[i],
@@ -350,21 +348,14 @@ def build_timeline_charts(entries: list[dict]) -> str | None:
 def index():
     default_bw = 64.0
     bodyweight = default_bw
-    plot_json = build_heatmap(default_bw)
-    line_json = build_line_chart(default_bw)
-    marginal_json = build_marginal_reps_chart(default_bw)
-
     if request.method == "POST":
         try:
             bodyweight = float(request.form.get("bodyweight", ""))
-            plot_json = build_heatmap(bodyweight)
-            line_json = build_line_chart(bodyweight)
-            marginal_json = build_marginal_reps_chart(bodyweight)
         except (ValueError, TypeError):
             bodyweight = default_bw
-            plot_json = build_heatmap(default_bw)
-            line_json = build_line_chart(default_bw)
-            marginal_json = build_marginal_reps_chart(default_bw)
+    plot_json = build_heatmap(bodyweight)
+    line_json = build_line_chart(bodyweight)
+    marginal_json = build_marginal_reps_chart(bodyweight)
 
     return render_template(
         "index.html", tab="calculator",
@@ -379,7 +370,10 @@ def login():
     if request.method == "POST":
         if check_password_hash(PASSWORD_HASH, request.form.get("password", "")):
             session["authenticated"] = True
-            return redirect(request.args.get("next", url_for("timeline")))
+            next_url = request.args.get("next", "")
+            if not next_url or not next_url.startswith("/") or next_url.startswith("//"):
+                next_url = url_for("timeline")
+            return redirect(next_url)
         error = "Incorrect password."
     return render_template("login.html", error=error)
 
