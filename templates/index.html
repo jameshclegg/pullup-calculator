@@ -80,6 +80,7 @@
     {# ── CALCULATOR TAB ── #}
     {% if tab == 'calculator' %}
     <form method="POST" class="inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <label for="bodyweight">Body Weight (kg):</label>
       <input type="number" id="bodyweight" name="bodyweight" step="0.1" min="30" max="200"
              value="{{ bodyweight or '' }}" placeholder="e.g. 75" required />
@@ -124,6 +125,7 @@
     {% if message %}<div class="msg">{{ message }}</div>{% endif %}
 
     <form method="POST" class="inline" style="margin-bottom:1rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <input type="hidden" name="action" value="add" />
       <label for="date">Date:</label>
       <input type="date" id="date" name="date" value="{{ today }}" required />
@@ -159,6 +161,7 @@
           <td>{{ e.reps }}</td>
           <td>
             <form method="POST" style="display:inline;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
               <input type="hidden" name="action" value="delete" />
               <input type="hidden" name="index" value="{{ e.id if e.id is defined else loop.index0 }}" />
               <button class="btn-sm btn-outline" type="submit">✕</button>

@@ -94,7 +94,7 @@ def build_heatmap(bodyweight: float) -> str:
 
 def build_line_chart(bodyweight: float) -> str:
     """Build a line chart of 1RM vs reps for specific added weights."""
-    _, reps, _ = compute_1rm_grid(bodyweight)
+    reps = np.arange(1, 26)
 
     fig = go.Figure()
     for weight, color in zip(LINE_CHART_WEIGHTS, WEIGHT_COLORS):

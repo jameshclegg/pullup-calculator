@@ -1,10 +1,12 @@
 """Flask web app for the pull-up 1RM calculator."""
 
+import logging
 import os
 from datetime import date
 from functools import wraps
 
 from flask import Flask, redirect, render_template, request, session, url_for
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import check_password_hash
 
 from charts import build_heatmap, build_line_chart, build_marginal_reps_chart, build_timeline_charts
@@ -12,10 +14,17 @@ from db import add_timeline_entry, delete_timeline_entry, init_db, load_timeline
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32).hex()
-
-# Password for the timeline page (set via environment variable)
+csrf = CSRFProtect(app)
 
 PASSWORD_HASH = os.environ.get("TIMELINE_PASSWORD", "")
+
+if PASSWORD_HASH and not PASSWORD_HASH.startswith(("scrypt:", "pbkdf2:", "$2b$")):
+    logging.warning(
+        "TIMELINE_PASSWORD does not look like a Werkzeug hash — "
+        "login will not work. Generate one with: python -c "
+        "\"from werkzeug.security import generate_password_hash; "
+        "print(generate_password_hash('your-password'))\""
+    )
 
 # Initialise the database table on startup
 with app.app_context():
