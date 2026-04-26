@@ -97,8 +97,8 @@ def timeline():
                 reps = int(request.form["reps"])
                 if not (55 <= bodyweight <= 75):
                     message = "Bodyweight must be between 55 and 75 kg."
-                elif not (0 <= added_weight <= 200):
-                    message = "Added weight must be between 0 and 200 kg."
+                elif not (0 <= added_weight <= 65):
+                    message = "Added weight must be between 0 and 65 kg."
                 elif not (1 <= reps <= 100):
                     message = "Reps must be between 1 and 100."
                 elif parsed_date > date.today():
