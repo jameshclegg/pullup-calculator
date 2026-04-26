@@ -9,6 +9,7 @@ Requires DATABASE_URL environment variable (or .env file).
 import json
 import os
 import sys
+from pathlib import Path
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -17,7 +18,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
-OUTPUT_FILE = os.path.join(os.path.dirname(__file__), "data", "timeline.json")
+OUTPUT_FILE = Path(__file__).parent / "data" / "timeline.json"
 
 
 def export():
@@ -33,10 +34,8 @@ def export():
     finally:
         conn.close()
 
-    os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
-
-    with open(OUTPUT_FILE, "w") as f:
-        json.dump(rows, f, indent=2)
+    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_FILE.write_text(json.dumps(rows, indent=2))
 
     print(f"Exported {len(rows)} entries to {OUTPUT_FILE}")
 
