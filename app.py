@@ -7,6 +7,8 @@ from functools import wraps
 
 from flask import Flask, redirect, render_template, request, session, url_for
 from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash
 
 from charts import build_heatmap, build_line_chart, build_marginal_reps_chart, build_timeline_charts
@@ -15,6 +17,7 @@ from db import add_timeline_entry, delete_timeline_entry, init_db, load_timeline
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32).hex()
 csrf = CSRFProtect(app)
+limiter = Limiter(get_remote_address, app=app, storage_uri="memory://")
 
 PASSWORD_HASH = os.environ.get("TIMELINE_PASSWORD", "")
 
@@ -70,6 +73,7 @@ def index():
 
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("10/minute", methods=["POST"])
 def login():
     error = None
     if request.method == "POST":
@@ -83,7 +87,7 @@ def login():
     return render_template("login.html", error=error)
 
 
-@app.route("/logout")
+@app.route("/logout", methods=["POST"])
 def logout():
     session.pop("authenticated", None)
     return redirect(url_for("index"))
