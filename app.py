@@ -95,8 +95,8 @@ def timeline():
                 bodyweight = float(request.form["bodyweight"])
                 added_weight = float(request.form["added_weight"])
                 reps = int(request.form["reps"])
-                if not (20 <= bodyweight <= 300):
-                    message = "Bodyweight must be between 20 and 300 kg."
+                if not (55 <= bodyweight <= 75):
+                    message = "Bodyweight must be between 55 and 75 kg."
                 elif not (0 <= added_weight <= 200):
                     message = "Added weight must be between 0 and 200 kg."
                 elif not (1 <= reps <= 100):
