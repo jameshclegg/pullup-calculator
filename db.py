@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS timeline (
 
 
 def _get_conn():
+    """Return a new psycopg2 connection using DATABASE_URL."""
     return psycopg2.connect(DATABASE_URL)
 
 
@@ -46,6 +47,7 @@ def init_db():
 # ---------------------------------------------------------------------------
 
 def _pg_load() -> list[dict]:
+    """Load all timeline entries from PostgreSQL, ordered by date."""
     with _get_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SELECT id, date, bodyweight, added_weight, reps FROM timeline ORDER BY date")
@@ -53,6 +55,7 @@ def _pg_load() -> list[dict]:
 
 
 def _pg_add(entry: dict) -> None:
+    """Insert a single timeline entry into PostgreSQL."""
     with _get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -63,6 +66,7 @@ def _pg_add(entry: dict) -> None:
 
 
 def _pg_delete(row_id: int) -> None:
+    """Delete a timeline entry by its database row id."""
     with _get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM timeline WHERE id = %s", (row_id,))
@@ -74,12 +78,14 @@ def _pg_delete(row_id: int) -> None:
 # ---------------------------------------------------------------------------
 
 def _local_load() -> list[dict]:
+    """Load entries from the local JSON file; return an empty list if it doesn't exist."""
     if _LOCAL_FILE.exists():
         return json.loads(_LOCAL_FILE.read_text())
     return []
 
 
 def _local_add(entry: dict) -> None:
+    """Append an entry to the local JSON file, creating it if necessary."""
     entries = _local_load()
     entries.append(entry)
     _LOCAL_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -87,6 +93,7 @@ def _local_add(entry: dict) -> None:
 
 
 def _local_delete(index: int) -> None:
+    """Remove an entry by its list index from the local JSON file."""
     entries = _local_load()
     entries.pop(index)
     _LOCAL_FILE.write_text(json.dumps(entries, indent=2))
@@ -97,10 +104,12 @@ def _local_delete(index: int) -> None:
 # ---------------------------------------------------------------------------
 
 def load_timeline() -> list[dict]:
+    """Dispatch to Postgres or local JSON based on whether DATABASE_URL is set."""
     return _pg_load() if DATABASE_URL else _local_load()
 
 
 def add_timeline_entry(entry: dict) -> None:
+    """Dispatch add to Postgres or local JSON based on whether DATABASE_URL is set."""
     if DATABASE_URL:
         _pg_add(entry)
     else:

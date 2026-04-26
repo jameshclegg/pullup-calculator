@@ -53,6 +53,8 @@ def build_heatmap(bodyweight: float) -> str:
     )
 
     paths = _extract_contour_paths(added_weights, reps, rm_grid, CONTOUR_LEVELS)
+    # Track which contour levels already have a legend entry to avoid duplicates
+    # (a single level can produce multiple disjoint path segments).
     legend_shown: set[float] = set()
     for level, xs, ys in paths:
         show_legend = level not in legend_shown
@@ -67,6 +69,8 @@ def build_heatmap(bodyweight: float) -> str:
                 hoverinfo="skip",
             )
         )
+        # Place a text label at the midpoint of each contour line so users can
+        # read the 1RM value directly on the heatmap without hovering.
         mid = len(xs) // 2
         fig.add_annotation(
             x=float(xs[mid]), y=float(ys[mid]),
@@ -133,6 +137,8 @@ def build_line_chart(bodyweight: float) -> str:
 def build_marginal_reps_chart(bodyweight: float) -> str:
     """Show the gain in estimated max unweighted reps from doing +1 rep at each added weight."""
     added_weights = list(range(0, 31))
+    # Base rep counts to compare marginal gains: each tuple is (reps, colour).
+    # For each base count we compute the benefit of doing one additional rep.
     rep_levels = [(8, "#9b59b6"), (11, "#3498db")]
 
     fig = go.Figure()
@@ -226,7 +232,10 @@ def build_timeline_charts(entries: list[dict]) -> str | None:
         row=2, col=1,
     )
 
-    # Linear trendline projected 6 months into the future
+    # Trendline projection: fit a linear regression to the unweighted-rep
+    # history (converting dates to day offsets for polyfit), then extend the
+    # line 6 months (~183 days) beyond the last data point so the user can
+    # visualise the projected trajectory.
     date_objs = [date.fromisoformat(d) for d in dates]
     day_nums = np.array([(d - date_objs[0]).days for d in date_objs], dtype=float)
     coeffs = np.polyfit(day_nums, unweighted, 1)
@@ -266,11 +275,16 @@ def build_timeline_charts(entries: list[dict]) -> str | None:
         row=4, col=1,
     )
 
-    # Annotate weight jumps on the added-weight chart
+    # Annotate weight jumps on the added-weight chart.
+    # When the added weight increases between consecutive entries, we label
+    # the jump with its size (e.g. "+2.5") and how many days the user spent
+    # at the previous weight level before progressing.  This gives a quick
+    # visual summary of progression milestones.
     for i in range(1, len(added_raw)):
         if added_raw[i] > added_raw[i - 1]:
             jump_kg = added_raw[i] - added_raw[i - 1]
-            # Find when the previous weight level was first adopted
+            # Walk backwards to find when the previous weight level was first
+            # adopted so we can compute the number of days spent there.
             prev_weight = added_raw[i - 1]
             first_at_prev = i - 1
             while first_at_prev > 0 and added_raw[first_at_prev - 1] == prev_weight:

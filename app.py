@@ -54,6 +54,9 @@ def login_required(f):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    """Serve the calculator page with heatmap, line, and marginal reps charts."""
+    # Fall back to a sensible default bodyweight when none is provided or the
+    # user submits a non-numeric value.
     default_bw = 64.0
     bodyweight = default_bw
     if request.method == "POST":
@@ -75,10 +78,15 @@ def index():
 @app.route("/login", methods=["GET", "POST"])
 @limiter.limit("10/minute", methods=["POST"])
 def login():
+    """Handle the login form; rate-limited to 10 POST requests per minute."""
     error = None
     if request.method == "POST":
         if check_password_hash(PASSWORD_HASH, request.form.get("password", "")):
             session["authenticated"] = True
+            # Open-redirect protection: only allow relative paths that start
+            # with a single slash.  Reject empty values, protocol-relative
+            # URLs ("//evil.com"), and any other scheme to prevent redirecting
+            # the user to an external site after login.
             next_url = request.args.get("next", "")
             if not next_url or not next_url.startswith("/") or next_url.startswith("//"):
                 next_url = url_for("timeline")
@@ -89,6 +97,7 @@ def login():
 
 @app.route("/logout", methods=["POST"])
 def logout():
+    """Clear the session and redirect to the index page."""
     session.pop("authenticated", None)
     return redirect(url_for("index"))
 
@@ -96,6 +105,7 @@ def logout():
 @app.route("/timeline", methods=["GET", "POST"])
 @login_required
 def timeline():
+    """Show the training timeline with add/delete entry forms; requires auth."""
     entries = load_timeline()
     message = None
 

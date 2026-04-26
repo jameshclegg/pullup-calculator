@@ -22,6 +22,7 @@ OUTPUT_FILE = Path(__file__).parent / "data" / "timeline.json"
 
 
 def export():
+    """Export all timeline entries from PostgreSQL to a local JSON backup file."""
     if not DATABASE_URL:
         print("FATAL: DATABASE_URL environment variable not set")
         sys.exit(1)
