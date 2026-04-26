@@ -16,10 +16,9 @@ from calculator import compute_1rm, compute_1rm_grid, compute_unweighted_reps
 from db import add_timeline_entry, delete_timeline_entry, init_db, load_timeline
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32).hex()
 
 # Password for the timeline page (set via environment variable)
-from werkzeug.security import check_password_hash
 
 PASSWORD_HASH = os.environ.get("TIMELINE_PASSWORD", "")
 
